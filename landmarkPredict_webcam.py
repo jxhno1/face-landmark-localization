@@ -54,8 +54,8 @@ def show_image(img, facepoint, bboxs, headpose):
         img = cv2.resize(img, (0,0), fx=radius, fy=radius)
 
     img = img[:,:,[2,1,0]]
-    plt.imshow(img)
-    plt.show()
+    cv2.imshow('frame',img)
+
 
 
 def recoverPart(point,bbox,left,right,top,bottom,img_height,img_width,height,width):
@@ -149,7 +149,7 @@ def detectFace(img):
     return bboxs;
 
 
-def predictImage(filename):
+def predict_image_webcam():
     vgg_point_MODEL_FILE = 'model/deploy.prototxt'
     vgg_point_PRETRAINED = 'model/68point_dlib_with_pose.caffemodel'
     mean_filename='model/VGG_mean.binaryproto'
@@ -157,21 +157,13 @@ def predictImage(filename):
     # caffe.set_mode_cpu()
     caffe.set_mode_gpu()
     caffe.set_device(0)
-    f = open(filename)
-    line = f.readline()
-    index = 0
     proto_data = open(mean_filename, "rb").read()
     a = caffe.io.caffe_pb2.BlobProto.FromString(proto_data)
     mean = caffe.io.blobproto_to_array(a)[0]
+    cap = cv2.VideoCapture(0)
 
-    while line:
-        print index
-        line = line.strip()
-        info = line.split(' ')
-        imgPath = info[0]
-        print imgPath
-        num = 1
-        colorImage = cv2.imread(imgPath)
+    while True:
+        ret, colorImage = cap.read()
         bboxs = detectFace(colorImage)
         faceNum = bboxs.shape[0]
         faces = np.zeros((1,3,vgg_height,vgg_width))
@@ -207,13 +199,8 @@ def predictImage(filename):
         level1Point = batchRecoverPart(predictpoints,bboxs,TotalSize,M_left,M_right,M_top,M_bottom,vgg_height,vgg_width)
 
         show_image(colorImage, level1Point, bboxs, predictpose)
-        line = f.readline()
-        index = index + 1
-
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print(__doc__)
-    else:
-        func = globals()[sys.argv[1]]
-        func(*sys.argv[2:])
+    predict_image_webcam()
